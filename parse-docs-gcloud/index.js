@@ -1,50 +1,37 @@
-import { Storage } from '@google-cloud/storage';
-import { Firestore } from '@google-cloud/firestore';
-import pdfParse from 'pdf-parse';
+const functions = require('@google-cloud/functions-framework');
 
-const storage = new Storage();
-const firestore = new Firestore();
+// Register a CloudEvent callback with the Functions Framework that will
+// be triggered by Cloud Storage.
+functions.cloudEvent("parseUploadedPdf", async (cloudEvent) => {
+  console.log(`Received CloudEvent ${cloudEvent.id}`);
+  console.log(`Type: ${cloudEvent.type}`);
 
-export const parseUploadedPdf = async (event) => {
-  const bucketName = event.bucket;
-  const filePath = event.name;
+  const file = cloudEvent.data;
 
-  console.log(`File uploaded: ${filePath}`);
+  // Storage metadata
+  const bucket = file.bucket;
+  const name = file.name;
+  const contentType = file.contentType;
+  const metageneration = file.metageneration;
+  const timeCreated = file.timeCreated;
 
-  // Extract userId and documentId from the path:
-  // users/{uid}/documents/{docId}/filename.pdf
-  const match = filePath.match(/users\/([^/]+)\/documents\/([^/]+)\//);
-  if (!match) {
-    console.log("Skipping file not in expected path.");
+  console.log("=== New Cloud Storage Upload ===");
+  console.log(`Bucket: ${bucket}`);
+  console.log(`File: ${name}`);
+  console.log(`Content Type: ${contentType}`);
+  console.log(`Metageneration: ${metageneration}`);
+  console.log(`Created: ${timeCreated}`);
+
+  // Only process PDFs
+  if (!contentType || !contentType.includes("pdf")) {
+    console.log("Not a PDF — ignoring.");
     return;
   }
-  const [_, userId, documentId] = match;
 
-  const bucket = storage.bucket(bucketName);
-  const file = bucket.file(filePath);
+  console.log(`Processing uploaded PDF: gs://${bucket}/${name}`);
 
-  // Download PDF into memory
-  const [buffer] = await file.download();
+  // TODO: Insert your PDF parsing logic here
+  // e.g., download file, parse text, extract data, call other services, etc.
 
-  // Parse PDF using pdf-parse (simple option)
-  const parsed = await pdfParse(buffer);
-
-  // Write parsed results into Firestore
-  await firestore
-    .collection("users")
-    .doc(userId)
-    .collection("documents")
-    .doc(documentId)
-    .set(
-      {
-        parsedText: parsed.text,
-        numPages: parsed.numpages,
-        info: parsed.info,
-        parsedAt: new Date(),
-        status: "parsed",
-      },
-      { merge: true }
-    );
-
-  console.log(`Finished parsing and stored results for ${filePath}`);
-};
+  console.log("PDF parsing completed (placeholder).");
+});

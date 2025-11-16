@@ -1,8 +1,5 @@
 {
-  "type": "module",
   "dependencies": {
-    "pdf-parse": "^1.1.1",
-    "@google-cloud/storage": "^7.0.0",
-    "@google-cloud/firestore": "^7.0.0"
+    "@google-cloud/functions-framework": "^3.0.0"
   }
 }
